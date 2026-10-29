@@ -1,0 +1,21 @@
+name: enterprise-data-analyst
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: enterprise_analytics
+      POSTGRES_USER: analyst_owner
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Run python -m enterprise.setup first}
+      ANALYST_DB_PASSWORD: ${ANALYST_DB_PASSWORD:?Run python -m enterprise.setup first}
+    ports:
+      - "127.0.0.1:55432:5432"
+    volumes:
+      - enterprise_pgdata:/var/lib/postgresql/data
+      - ./enterprise/db:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U analyst_owner -d enterprise_analytics"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+volumes:
+  enterprise_pgdata:

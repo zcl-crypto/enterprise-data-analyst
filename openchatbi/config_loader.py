@@ -114,6 +114,11 @@ class Config(BaseModel):
     # Fail-closed Text2SQL SQL guard (default OFF for backward compatibility)
     enable_fail_closed_sql_guard: bool = False
 
+    # Enterprise policy is opt-in for legacy callers and mandatory in enterprise.api.
+    enable_ast_sql_guard: bool = False
+    sql_access_schema: dict[str, dict[str, str]] = {}
+    sql_timeout_ms: int = 5000
+
     # HITL Confidence Gate Configuration (default OFF for zero-regression)
     enable_confidence_gate: bool = False
     sql_confidence_threshold: float = 0.7

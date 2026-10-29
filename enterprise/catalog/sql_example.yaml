@@ -1,0 +1,37 @@
+sales:
+  order_metrics: 'Q: 分析最近三个完整自然月各部门的订单退款率，标记异常部门并展示趋势
+
+    A: SELECT to_char(ordered_at, ''YYYY-MM'') AS month, department_name,
+
+    COUNT(*) AS order_count, COUNT(*) FILTER (WHERE is_refunded) AS refunded_orders,
+
+    ROUND(100.0 * COUNT(*) FILTER (WHERE is_refunded) / NULLIF(COUNT(*),0),2) AS refund_rate
+
+    FROM sales.order_metrics WHERE status=''paid'' AND ordered_at >= date_trunc(''month'',
+    CURRENT_DATE) - interval ''3 months'' AND ordered_at < date_trunc(''month'', CURRENT_DATE)
+
+    GROUP BY 1,2 ORDER BY 1,2
+
+
+    Q: 最近三个完整自然月各部门销售额趋势
+
+    A: SELECT to_char(ordered_at,''YYYY-MM'') AS month, department_name,
+
+    COUNT(*) AS order_count, SUM(paid_amount) AS sales_amount
+
+    FROM sales.order_metrics WHERE status=''paid'' AND ordered_at >= date_trunc(''month'',
+    CURRENT_DATE) - interval ''3 months'' AND ordered_at < date_trunc(''month'', CURRENT_DATE)
+
+    GROUP BY 1,2 ORDER BY 1,2'
+  refunds: 'Q: 最近三个完整自然月的订单，其成功退款金额按原因如何分布
+
+    A: SELECT r.reason, COUNT(DISTINCT r.order_id) AS refunded_orders,
+
+    SUM(r.refund_amount) AS refund_amount
+
+    FROM sales.refunds r JOIN sales.orders o ON o.order_id=r.order_id
+
+    WHERE o.status=''paid'' AND r.refund_status=''completed'' AND ordered_at >= date_trunc(''month'',
+    CURRENT_DATE) - interval ''3 months'' AND ordered_at < date_trunc(''month'', CURRENT_DATE)
+
+    GROUP BY r.reason ORDER BY refund_amount DESC'

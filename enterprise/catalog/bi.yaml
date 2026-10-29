@@ -1,0 +1,19 @@
+basic_knowledge_glossary: '订单退款率: 成功退款的去重订单数 / 已支付订单数 × 100%，按订单下单日期归属期间，排除取消订单。
+
+  退款金额率: 成功退款金额 / 已支付金额 × 100%，与订单退款率不同；分次退款金额求和。
+
+  最近三个月: 默认最近三个完整自然月，起点包含、终点不包含；不包含当前未结束月份。
+
+  退款状态: 仅 refund_status=completed 计入退款，rejected 不计入。
+
+  关联规则: orders.customer_id → customers.customer_id；orders.department_id → departments.department_id；refunds.order_id
+  → orders.order_id。
+
+  防止重复计算: 优先使用 sales.order_metrics 视图。该视图先按订单汇总退款，再关联订单与部门，每订单一行。
+
+  异常口径: 部门至少30个已支付订单，订单退款率超过20%且超过本次部门中位数的2倍，标记为待核查；不是因果结论。
+
+  数据性质: 本库全部为合成演示数据，退款原因仅为模拟标签。时间基准为数据库 CURRENT_DATE。'
+table_selection_extra_rule: 销售、退款率、部门趋势优先使用sales.order_metrics；原因分析需sales.refunds关联sales.orders。
+text2sql_extra_rule: 仅生成一个PostgreSQL SELECT。使用sales限定表名。禁止DDL/DML。必须显式列出查询字段，不得使用SELECT
+  *或table.*；COUNT(*)可用于统计行数。订单退款率用refund_rate，支付订单数用order_count，退款订单数用refunded_orders，月份用month，部门用department_name。需要趋势时同时保留月份和部门维度。退款原因用reason，成功退款金额用refund_amount，销售额用sales_amount。以上英文名是结果接口字段名，必须使用；中文展示由前端完成，不要以中文展示名替换输出别名。异常标记由应用基于返回的订单计数统一计算；SQL只返回所需粒度的事实指标，不额外生成异常标记、部门总计或中位数列。不要对已计算的退款率取平均，应使用去重退款订单数除以支付订单数。

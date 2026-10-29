@@ -1,0 +1,17 @@
+column_name,type,display_name,alias,category,description
+department_id,INT,部门编号,部门编号,dimension,部门编号 department_id
+department_name,TEXT,部门,部门,dimension,部门 department_name
+customer_id,INT,客户编号,客户编号,dimension,客户编号 customer_id
+customer_name,TEXT,客户名称,客户名称,dimension,客户名称 customer_name
+segment,TEXT,客户分群,客户分群,dimension,客户分群 segment
+order_id,INT,订单编号,订单编号,dimension,订单编号 order_id
+ordered_at,DATE,下单日期,下单日期,dimension,下单日期 ordered_at
+paid_amount,DECIMAL,支付金额,支付金额,metric,支付金额 paid_amount
+status,TEXT,订单状态,订单状态,dimension,订单状态 status
+refund_id,INT,退款流水编号,退款流水编号,dimension,退款流水编号 refund_id
+refunded_at,DATE,退款日期,退款日期,dimension,退款日期 refunded_at
+refund_amount,DECIMAL,退款金额,退款金额,metric,退款金额 refund_amount
+refund_status,TEXT,退款状态,退款状态,dimension,退款状态 refund_status
+reason,TEXT,退款原因,退款原因,dimension,退款原因 reason
+refund_count,BIGINT,成功退款次数,成功退款次数,metric,成功退款次数 refund_count
+is_refunded,BOOLEAN,是否成功退款,是否成功退款,dimension,是否成功退款 is_refunded

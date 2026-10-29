@@ -220,3 +220,18 @@ openspec
 .cursor
 .claude
 chroma_db_new
+
+# Enterprise application runtime artifacts
+.uv-cache/
+.runtime/
+frontend/node_modules/
+frontend/dist/
+frontend/.npm-cache/
+frontend/test-results/
+frontend/playwright-report/
+
+# Local configuration variants and planning notes
+.env.*
+!.env.example
+!.env.sample
+PROJECT_PLAN.md

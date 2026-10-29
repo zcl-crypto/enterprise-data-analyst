@@ -1,927 +1,201 @@
-# OpenChatBI
+# 观数 · 企业智能数据分析与可视化系统
 
-OpenChatBI is an open source, chat-based intelligent BI tool powered by large language models, designed to help users 
-query, analyze, and visualize data through natural language conversations. Built on LangGraph and LangChain ecosystem, 
-it provides chat agents and workflows that support natural language to SQL conversion and streamlined data analysis.
+使用自然语言查询经营数据，查看 SQL、指标口径与结果明细，并生成图表和分析报告。
 
-Join the Slack channel to discuss: [Invitation Link To Join](https://join.slack.com/t/openchatbicommunity/shared_invite/zt-40o5ncq8k-fMU61eUg87m8JhrCIBOV8A)
+基于 Python、FastAPI、LangGraph、PostgreSQL、SQLGlot 和 ECharts，覆盖从问题理解、业务目录检索、SQL 生成与校验，到数据分析、可视化及报告导出的完整流程。
 
-<img src="https://github.com/zhongyu09/openchatbi/raw/main/example/demo.gif" alt="Demo" width="800">
+![观数：自然语言问数、退款率趋势与异常提示](docs/images/analytics.png)
 
-## Core Features
+## 核心功能
 
-1. **Natural Language Interaction**: Get data analysis results by asking questions in natural language
-2. **Automatic SQL Generation**: Convert natural language queries into SQL statements using advanced text2sql workflows
-   with schema linking and well organized prompt engineering
-3. **Data Visualization**: Generate intuitive data visualizations (via plotly)
-4. **Data Catalog Management**: Automatically discovers and indexes database table structures, supports flexible catalog
-   storage backends with vector-based or BM25-based retrieval, and easily maintains business explanations for tables
-   and columns as well as optimizes Prompts.
-5. **Time Series Forecasting**: In-house forecasting models, accessed through the data analysis agent (see feature 12)
-6. **Code Execution**: Execute Python code for data analysis and visualization
-7. **Interactive Problem-Solving**: Proactively ask users for more context when information is incomplete
-8. **Persistent Memory**: Conversation management and user characteristic memory based on LangGraph checkpointing
-9. **MCP Support**: Integration with MCP tools by configuration
-10. **Knowledge Base Integration**: Answer complex questions by combining catalog based knowledge retrival and external
-   knowledge base retrival (via MCP tools)
-11. **Web UI Interface**: Provide 2 sample UI: simple and streaming web interfaces using Gradio and Streamlit, easy to
-   integrate with other web applications
-12. **Data Analysis Agent**: A specialized sub-agent (built on [deepagents](https://github.com/langchain-ai/deepagents))
-   that the main agent delegates complex analysis to. It orchestrates text2sql, time series forecasting, anomaly detection,
-   multi-dimensional drill-down (Adtributor) and Python execution to cover trend forecasting, anomaly detection,
-   anomaly root-cause drill-down, multi-metric correlation and business combination analysis. Optionally uses a
-   dedicated `analysis_llm`. See [`openchatbi/analysis/README.md`](openchatbi/analysis/README.md)
-   for the agent and the underlying anomaly detection / Adtributor algorithms.
+| 功能 | 说明 |
+| --- | --- |
+| 自然语言问数 | 将业务问题转化为 PostgreSQL 查询，支持销售、订单、退款等经营分析场景 |
+| 业务语义与结构检索 | 结合指标定义、表结构、关联关系与 SQL 示例，识别查询所需的数据 |
+| LangGraph 工作流 | 编排需求解析、知识检索、选表、SQL 生成和执行；错误分类后有限纠错，支持澄清与检查点恢复 |
+| SQL 校验与只读执行 | SQLGlot AST 校验单语句、表字段与函数范围；结合数据库只读账号、只读事务、查询超时与结果行数限制 |
+| 阶段进度与历史 | 后台执行任务，通过 SSE 展示阶段进度，保存查询历史和结果 |
+| 数据分析与异常提示 | 基于实际查询结果计算指标、趋势变化与规则异常，保留计算依据 |
+| 可视化与证据核验 | ECharts 展示趋势及分布，可查看执行 SQL、数据明细和指标口径 |
+| 报告导出 | 下载包含分析摘要、异常依据、SQL、口径及结果明细的 Markdown 报告 |
 
-## Roadmap
+## 工作流程
 
-1. **Anomaly Detection Algorithm**: Time series anomaly detection — initial version available via the data analysis
-   agent; actively being refined toward production readiness.
-2. **Root Cause Analysis Algorithm**: Multi-dimensional drill-down for anomaly investigation — initial Adtributor-based
-   drill-down tool available; actively being refined toward production readiness.
-3. **Data Analysis Agent**: End-to-end analysis orchestration — initial version available; iterating on robustness,
-   data hand-off between tools, and overall quality to reach production readiness.
-
-# Getting started
-
-## Installation & Setup
-
-### Prerequisites
-
-- Python 3.11 or higher
-- Access to a supported LLM provider (OpenAI, Anthropic, etc.)
-- Data Warehouse (Database) credentials (like Presto, PostgreSQL, MySQL, etc.)
-- (Optional) Embedding model for vector-based retrieval - if not available, BM25-based retrieval will be used
-- (Optional) Docker - required only for `docker` executor mode
-
-**Note on Chinese Text Segmentation**: For better Chinese text retrieval, `jieba` is used for word segmentation. However, `jieba` is not compatible with Python 3.12+. On Python 3.12 and higher, the system automatically falls back to simple punctuation-based segmentation for Chinese text.
-
-### LangGraph Version Compatibility
-
-OpenChatBI has upgraded its agent runtime to **LangGraph v1** and currently targets `langgraph>=1.2.2`.
-This upgrade also brings in the LangChain 1.x ecosystem and related compatibility changes.
-
-If you do **not** want to depend on LangGraph v1, please use OpenChatBI `v0.2.2` or an earlier release.
-
-### Installation
-
-1. **Using uv (recommended):**
-
-```bash
-git clone git@github.com:zhongyu09/openchatbi
-uv sync
-```
-
-2. **Using pip:**
-
-```bash
-pip install openchatbi
-```
-
-3. **For development:**
-
-```bash
-git clone git@github.com:zhongyu09/openchatbi
-uv sync --group dev
-```
-
-Optional: If you want to use `pysqlite3` (newer SQLite builds), you can install it manually. If build fails, install SQLite first:
-
-On macOS, try to install sqlite using Homebrew:
-```bash
-brew install sqlite
-brew info sqlite
-export LDFLAGS="-L/opt/homebrew/opt/sqlite/lib"
-export CPPFLAGS="-I/opt/homebrew/opt/sqlite/include"
-```
-On Amazon Linux / RHEL / CentOS:
-```bash
-sudo yum install sqlite-devel
-```
-On Ubuntu / Debian:
-```bash
-sudo apt-get update
-sudo apt-get install libsqlite3-dev
-```
-
-### Run Demo
-
-Run demo using **example dataset** from spider dataset. You need to provide "YOUR OPENAI API KEY" or change config to use other LLM providers.
-
-**Note**: The demo example includes embedding model configuration. If you want to run without an embedding model, you can remove the `embedding_model` section in the config - BM25 retrieval will be used automatically.
-
-```bash
-cp example/config.yaml openchatbi/config.yaml
-sed -i 's/YOUR_API_KEY_HERE/[YOUR OPENAI API KEY]/g' openchatbi/config.yaml
-python run_streamlit_ui.py
-```
-
-### Configuration
-
-1. **Create configuration file**
-
-Copy the configuration template:
-```bash
-cp openchatbi/config.yaml.template openchatbi/config.yaml
-```
-Or create an empty YAML file.
-
-2. **Configure your LLMs:**
-
-```yaml
-# Select which provider to use
-default_llm: openai
-
-# Define one or more providers
-llm_providers:
-  openai:
-    default_llm:
-      class: langchain_openai.ChatOpenAI
-      params:
-        api_key: YOUR_API_KEY_HERE
-        model: gpt-5.5
-        temperature: 0.02
-        max_tokens: 8192
-
-    # Optional: Embedding model for vector-based retrieval and memory tools
-    # If not configured, BM25-based retrieval will be used, and the memory tools will not work
-    embedding_model:
-      class: langchain_openai.OpenAIEmbeddings
-      params:
-        api_key: YOUR_API_KEY_HERE
-        model: text-embedding-3-large
-        chunk_size: 1024
-```
-
-3. **Configure your data warehouse:**
-
-```yaml
-organization: Your Company
-dialect: presto
-data_warehouse_config:
-  uri: "presto://user@host:8080/catalog/schema"
-  include_tables:
-    - your_table_name
-  database_name: "catalog.schema"
-```
-
-4. **Configure SQL result limit:**
-
-Text2SQL query results are limited by default to avoid loading unbounded result sets into memory or the agent context. You can adjust the limit or disable it in `config.yaml`:
-
-```yaml
-enable_sql_result_limit: true
-sql_result_limit: 10000
-```
-
-5. **Optionally enable the fail-closed Text2SQL SQL guard:**
-
-The application-layer SQL guard keeps its backward-compatible fail-open behavior by default after known dangerous patterns are rejected. Deployments that prefer stricter enforcement can opt in to the read-only allowlist:
-
-```yaml
-enable_fail_closed_sql_guard: true
-```
-
-When enabled, only `SELECT` and `WITH ... SELECT` query shapes are allowed to reach the data warehouse. This regex-based guard is an interim defense-in-depth control and can reject valid dialect-specific read-only SQL. Always connect OpenChatBI with a read-only, non-superuser warehouse account; the guard does not replace database permissions. Parser-based validation of a single read-only statement is the planned hardening direction.
-
-### Running the Application
-
-1. **Invoking LangGraph:**
-
-```bash
-export CONFIG_FILE=YOUR_CONFIG_FILE_PATH
-```
-
-```python
-from openchatbi import get_default_graph
-
-graph = get_default_graph()
-graph.invoke({"messages": [{"role": "user", "content": "Show me ctr trends for the past 7 days"}]},
-    config={"configurable": {"thread_id": "1"}})
-```
-
-```
-# System-generated SQL
-SELECT date, SUM(clicks)/SUM(impression) AS ctr
-FROM ad_performance
-WHERE date >= CURRENT_DATE - 7 DAYS
-GROUP BY date
-ORDER BY date;
-```
-
-2. **Sample Web UI:**
-
-Streamlit based UI:
-```bash
-streamlit run sample_ui streamlit_ui.py
-```
-
-Run Gradio based UI:
-```bash
-python sample_ui/streaming_ui.py
-```
-
-3. **Command Line Interface (CLI):**
-
-```bash
-export CONFIG_FILE=YOUR_CONFIG_FILE_PATH
-python run_cli.py
-```
-
-## Configuration Instructions
-
-The configuration template is provided at `config.yaml.template`. Key configuration sections include:
-
-### Basic Settings
-
-- `organization`: Organization name (e.g., "Your Company")
-- `dialect`: Database dialect (e.g., "presto")
-- `bi_config_file`: Path to BI configuration file (e.g., "example/bi.yaml")
-
-### Catalog Store Configuration
-
-- `catalog_store`: Configuration for data catalog storage
-    - `store_type`: Storage type, either `"file_system"` or `"database"`
-    - For `store_type: file_system`:
-        - `data_path`: Path to catalog data stored by file system (e.g., "./example")
-    - For `store_type: database` (SQLAlchemy-backed catalog persistence):
-        - `connection_string`: SQLAlchemy database URI for the **catalog persistence
-          database** (e.g., `sqlite:///catalog.db`,
-          `postgresql+psycopg://user:pass@host/db`, `mysql+pymysql://user:pass@host/db`).
-          For MySQL, install the `pymysql` driver (`pip install openchatbi[mysql]`);
-          for PostgreSQL, install the `psycopg` driver (`pip install openchatbi[postgresql]`).
-        - `auto_create_schema`: Whether to auto-create catalog tables on first use
-          (default `true`; set `false` for externally managed schemas)
-
-> **Important:** The catalog persistence database (`connection_string` under
-> `catalog_store`) is configured independently from `data_warehouse_config`. The
-> `data_warehouse_config` is only used to build the data warehouse execution engine
-> used to run generated SQL; it is never reused as the catalog persistence DB.
-
-Example enabling the DB backend:
-
-```yaml
-catalog_store:
-  store_type: database
-  connection_string: sqlite:///./catalog.db
-  auto_create_schema: true
-data_warehouse_config:
-  uri: presto://user@host:8080/hive
-  database_name: sales
-```
-
-#### Migrating a file-system catalog to the DB backend
-
-A helper script copies an existing file-system catalog (tables, columns, SQL
-examples and table-selection examples) into a database catalog store:
-
-```bash
-python -m openchatbi.catalog.migrate \
-    --source-path ./example \
-    --dest-connection-string sqlite:///./catalog.db
-```
-
-See [migrate.py](openchatbi/catalog/migrate.py) for more details.
-
-### Data Warehouse Configuration
-
-- `data_warehouse_config`: Database connection settings
-    - `uri`: Connection string for your database
-    - `include_tables`: List of tables to include in catalog, leave empty to include all tables
-    - `database_name`: Database name for catalog
-    - `token_service`: Token service URL (for data warehouse that need token authentication like Presto)
-    - `user_name` / `password`: Token service credentials
-
-### LLM Configuration
-
-Various LLMs are supported based on LangChain, see LangChain API
-Document(https://reference.langchain.com/python/integrations/overview) for full list that support
-`chat_models`. You can configure different LLMs for different tasks:
-
-- `default_llm`: Primary language model for general tasks
-- `embedding_model`: (Optional) Model for embedding generation. If not configured, BM25-based text retrieval will be used as fallback, and the memory tools will not work
-- `text2sql_llm`: (Optional) Specialized model for SQL generation. If not configured, uses `default_llm`
-
-Multiple providers (optional):
-
-- Configure multiple providers under `llm_providers` and select with `default_llm: <provider_name>`.
-- In `sample_ui/streamlit_ui.py`, a provider dropdown appears when `llm_providers` is configured.
-- In `sample_api/async_api.py`, pass `provider` in the `/chat/stream` request body.
-
-Commonly used LLM providers and their corresponding classes and installation commands:
-
-- **Anthropic**: `langchain_anthropic.ChatAnthropic`, included by default
-- **OpenAI**: `langchain_openai.ChatOpenAI`, included by default
-- **Azure OpenAI**: `langchain_openai.AzureChatOpenAI`, `pip install openchatbi[azure-openai]`
-- **Google Vertex AI**: `langchain_google_vertexai.ChatVertexAI`, `pip install openchatbi[google-vertex-ai]`
-- **Bedrock**: `langchain_aws.ChatBedrock`, `pip install openchatbi[bedrock]`
-- **Huggingface**: `langchain_huggingface.ChatHuggingFace`, `pip install openchatbi[huggingface]`
-- **Deepseek**: `langchain_deepseek.ChatDeepSeek`, `pip install openchatbi[deepseek]`
-- **Ollama**: `langchain_ollama.ChatOllama`, `pip install openchatbi[ollama]`
-
-### Advanced Configuration
-
-OpenChatBI supports sophisticated customization through prompt engineering and catalog management features:
-
-- **Prompt Engineering Configuration**: Customize system prompts, business glossaries, and data warehouse introductions
-- **Data Catalog Management**: Configure table metadata, column descriptions, and SQL generation rules
-- **Business Rules**: Define table selection criteria and domain-specific SQL constraints
-- **Forecasting Service**: Configure the forecasting service url and prompt based on your own deployment 
-
-For detailed configuration options and examples, see the [Advanced Features](#advanced-features) section.
-
-## Agent Harness Features
-
-The agent harness adds observability, human-in-the-loop quality gating, learned SQL memory and an evaluation
-toolchain. All of these are **off by default** and enabled individually in `config.yaml`.
-
-### Observability
-
-- **Audit log**: every SQL execution is logged with statement, dialect, duration, row count and status
-  (`observability.audit.enabled: true`; sink `log` or `file`, SQL literals masked by default).
-- **LLM tracing**: optional [Langfuse](https://langfuse.com/) tracing
-  (`observability.tracing.enabled: true`, `provider: langfuse`; credentials come from the
-  `LANGFUSE_PUBLIC_KEY` / `LANGFUSE_SECRET_KEY` / `LANGFUSE_HOST` environment variables).
-- **Metrics**: per-run token/cost accounting via callback handlers (`observability.metrics.enabled: true`).
-
-### HITL Confidence Gate
-
-After a successful execution, an LLM evaluator scores the SQL against the source-table schema using a
-6-check rubric (select columns, filters, calculations, subqueries, joins, result plausibility).
-Low-confidence SQL pauses the graph and asks the user to approve / reject / edit before the answer is returned.
-
-```yaml
-enable_confidence_gate: true     # default false
-sql_confidence_threshold: 0.7    # interrupt below this score
-```
-
-### SQL Error Recovery
-
-Execution errors are classified (syntax, timeout, security, missing table, ...) into recovery strategies
-that drive the retry routing:
-
-```yaml
-sql_max_retries: 3        # regeneration retry budget
-retry_on_timeout: false   # opt-in: also retry timed-out queries
-```
-
-Information extraction may call `search_knowledge` or `AskHuman` before writing SQL; a question past this many
-tool rounds ends extraction:
-
-```yaml
-extraction_max_tool_rounds: 10   # tool rounds per question
-```
-
-### Learned SQL Memory
-
-- **Pattern memory**: approved, high-confidence (question → SQL) pairs are auto-captured into the runtime
-  example store and blended into few-shot retrieval, re-ranked by importance / recency / frequency.
-- **Golden SQL**: human-approved SQL is dual-written to the runtime store and the catalog YAML.
-
-```yaml
-enable_golden_sql: true       # default false
-memory_config:
-  enable_pattern_memory: true       # default false
-  max_patterns_per_query: 5
-  enable_memory_decay_rerank: true  # decay/frequency re-rank for memory search
-```
-
-### Evaluation
-
-- **Deterministic replay**: `evals/runledger/` runs the agent graph with scripted LLM decisions and replayed tool cassettes in CI
-  (`.github/workflows/runledger.yml`; runs on PRs to `main` or manual dispatch).
-- **LLM-as-Judge**: collect generated SQL over gold cases, then judge it with the shared rubric evaluator —
-  see [`evals/judge/README.md`](evals/judge/README.md) for the two-step flow:
-
-```bash
-python -m evals.judge.collect_generated --cases evals/judge/example_cases --config my_config.yaml --out generated.json
-python -m evals.judge.run_judge --cases evals/judge/example_cases --generated generated.json --config my_config.yaml --out judge_out/report.json
-```
-
-## Architecture Overview
-
-OpenChatBI is built using a modular architecture with clear separation of concerns:
-
-1. **LangGraph Workflows**: Core orchestration using state machines for complex multi-step processes
-2. **Catalog Management**: Flexible data catalog system with intelligent retrieval (vector-based or BM25 fallback)
-3. **Text2SQL Pipeline**: Advanced natural language to SQL conversion with schema linking
-4. **Data Analysis Agent**: Specialized sub-agent that orchestrates forecasting, anomaly detection, root-cause drill-down and Python analysis into multi-step workflows
-5. **Code Execution**: Sandboxed Python execution environment for data analysis
-6. **Tool Integration**: Extensible tool system for human interaction and knowledge search
-7. **Persistent Memory**: SQLite-based conversation state management
-
-## Technology Stack
-
-- **Frameworks**: LangGraph, LangChain, DeepAgents, FastAPI, Gradio/Streamlit
-- **Text Retrieval**: Vector-based (with embedding models) or BM25-based (fallback without embeddings)
-- **Databases**: SQLAlchemy-backed connectors for data warehouses and RDS/OLTP databases
-- **Code Execution**: Local Python, RestrictedPython, Docker containerization
-- **Development**: Python 3.11+, with modern tooling (Black, Ruff, MyPy, Pytest)
-- **Storage**: SQLite for conversation checkpointing, file system catalog storage
-
-### Agent Graph
 ```mermaid
-graph TD
-    START((Start)) --> llm_node[llm_node]
-    
-    llm_node -->|tool_call: AskHuman| ask_human[ask_human]
-    llm_node -->|tool_call: Other Tools| use_tool[use_tool]
-    llm_node -->|final_answer| END((End))
-    
-    ask_human --> llm_node
-    use_tool --> llm_node
-    
-    subgraph use_tool [Available Tools in use_tool node]
-        text2sql
-        data_analysis
-        run_python_code
-        search_knowledge
-        show_schema
-        save_report
-        memory_tools
-        mcp_tools
-    end
+flowchart TD
+    Q[自然语言问题] --> E[需求解析与业务知识检索]
+    E --> H{是否需要澄清}
+    H -->|是| U[用户补充信息 / 检查点恢复]
+    U --> E
+    H -->|否| S[检索表结构与关联关系]
+    S --> G[生成 SQL]
+    G --> V[SQLGlot 校验与只读查询]
+    V -->|可纠正错误，最多两次| G
+    V -->|成功| A[指标计算、趋势分析与异常标记]
+    V -->|拒绝、超时或重试耗尽| F[返回明确错误]
+    A --> C[ECharts 图表 / 结果明细 / Markdown 报告]
 ```
 
-### Text2SQL Graph
-```mermaid
-graph TD
-    START((Start)) --> IE[information_extraction]
-    
-    IE -->|ask_human| AH[ask_human]
-    IE -->|search_knowledge| SK[search_knowledge]
-    IE -->|next| TS[table_selection]
-    IE -->|end| END((End))
-    
-    AH --> IE
-    SK --> IE
-    
-    TS --> GS[generate_sql]
-    
-    GS -->|execute_sql| ES[execute_sql]
-    GS -->|end| END
-    
-    ES -->|success| SS[score_sql]
-    ES -->|regenerate_sql| RS[regenerate_sql]
-    ES -->|end| END
+业务数据存储于 PostgreSQL，任务、阶段事件和 LangGraph 检查点持久化于本地 SQLite。
+界面渲染结构化图表配置，不执行模型生成的 JavaScript。
 
-    SS --> CG[confidence_gate]
-    
-    CG -->|generate_visualization| GV[generate_visualization]
-    CG -->|regenerate_sql| RS
-    CG -->|execute_sql| ES
-    
-    RS -->|execute_sql| ES
-    RS -->|end| END
-    
-    GV --> END
+## 示例问题
+
+- 分析最近三个完整自然月各部门的订单退款率，标记异常部门并展示趋势。
+- 最近三个完整自然月各部门销售额趋势。
+- 最近三个完整自然月的订单，其成功退款金额按原因如何分布。
+
+页面输入框执行真实模型问数；下方固定案例使用审核过的 SQL，可在未配置模型时体验数据库查询和图表。
+
+## Windows 安装与启动
+
+前置：Git、uv、Node.js 20.19+、已启动的 Docker Desktop（Linux 容器模式）。
+先克隆仓库，再进入项目目录执行：
+
+```powershell
+git clone https://github.com/zcl-crypto/enterprise-data-analyst.git
+cd enterprise-data-analyst
 ```
 
-## Project Structure
-
-```
-openchatbi/
-├── README.md                    # Project documentation
-├── pyproject.toml               # Modern Python project configuration
-├── Dockerfile.python-executor  # Docker image for isolated code execution
-├── run_tests.py                # Test runner script
-├── run_streamlit_ui.py         # Streamlit UI launcher
-├── openchatbi/                 # Core application code
-│   ├── __init__.py             # Package initialization
-│   ├── config.yaml.template    # Configuration template
-│   ├── config_loader.py        # Configuration management
-│   ├── constants.py            # Application constants
-│   ├── agent_graph.py          # Main LangGraph workflow
-│   ├── graph_state.py          # State definition for workflows
-│   ├── context_config.py       # Context management configuration
-│   ├── context_manager.py      # Context window and token management
-│   ├── memory_config.py        # Memory configuration
-│   ├── memory_scoring.py       # Learned SQL memory scoring
-│   ├── streaming.py            # Shared streaming event utilities
-│   ├── text_segmenter.py       # Text segmentation with jieba support
-│   ├── utils.py                # Utility functions and SimpleStore (BM25-based retrieval)
-│   ├── analysis/               # Data analysis agent + algorithms (see analysis/README.md)
-│   │   ├── README.md           # Package documentation
-│   │   ├── agent.py            # Data analysis agent + `data_analysis` tool
-│   │   ├── anomaly_detection.py # Anomaly detection scoring algorithm
-│   │   ├── adtributor.py       # Adtributor root-cause / drill-down algorithm
-│   │   └── models.py           # Adtributor output models
-│   ├── catalog/                # Data catalog management
-│   │   ├── __init__.py         # Package initialization
-│   │   ├── catalog_loader.py   # Catalog loading logic
-│   │   ├── catalog_store.py    # Catalog storage interface
-│   │   ├── factory.py          # Catalog factory patterns
-│   │   ├── helper.py           # Catalog helper functions
-│   │   ├── retrival_helper.py  # Retrieval helper utilities
-│   │   ├── schema_retrival.py  # Schema retrieval logic
-│   │   ├── token_service.py    # Token service integration
-│   │   └── store/              # Catalog storage implementations
-│   │       ├── file_system.py  # File system-based catalog storage
-│   │       └── database.py     # SQLAlchemy DB-based catalog storage
-│   ├── code/                   # Code execution framework
-│   │   ├── __init__.py         # Package initialization
-│   │   ├── executor_base.py    # Base executor interface
-│   │   ├── local_executor.py   # Local Python execution
-│   │   ├── restricted_local_executor.py # RestrictedPython execution
-│   │   └── docker_executor.py  # Docker-based isolated execution
-│   ├── llm/                    # LLM integration layer
-│   │   ├── __init__.py         # Package initialization
-│   │   └── llm.py              # LLM management and retry logic
-│   ├── observability/          # Audit, tracing, logging, metrics, and pricing support
-│   ├── prompts/                # Prompt templates and engineering
-│   │   ├── __init__.py         # Package initialization
-│   │   ├── agent_prompt.md     # Main agent prompts
-│   │   ├── data_analysis_prompt.md # Data analysis prompts
-│   │   ├── extraction_prompt.md # Information extraction prompts
-│   │   ├── schema_linking_prompt.md # Schema linking prompts
-│   │   ├── sql_confidence_prompt.md # SQL confidence evaluation prompts
-│   │   ├── system_prompt.py    # System prompt management
-│   │   ├── summary_prompt.md   # Summary conversation prompts
-│   │   ├── table_selection_prompt.md # Table selection prompts
-│   │   ├── text2sql_prompt.md  # Text-to-SQL prompts
-│   │   ├── visualization_prompt.md # Visualization prompts
-│   │   └── sql_dialect/        # SQL dialect-specific prompts
-│   ├── text2sql/               # Text-to-SQL conversion pipeline
-│   │   ├── __init__.py         # Package initialization
-│   │   ├── confidence.py       # SQL confidence evaluation
-│   │   ├── data.py             # Data and retriever for Text-to-SQL
-│   │   ├── errors.py           # Text2SQL error types
-│   │   ├── extraction.py       # Information extraction
-│   │   ├── generate_sql.py     # SQL generation and execution logic
-│   │   ├── schema_linking.py   # Schema linking process
-│   │   ├── sql_graph.py        # SQL generation LangGraph workflow
-│   │   ├── text2sql_utils.py   # Text2SQL utilities
-│   │   └── visualization.py    # Data visualization functions
-│   └── tool/                   # LangGraph tools and functions
-│       ├── anomaly_detection.py # Anomaly detection tool wrapper
-│       ├── adtributor_tool.py  # Adtributor drill-down tool wrapper
-│       ├── ask_human.py        # Human-in-the-loop interactions
-│       ├── memory.py           # Memory management tool
-│       ├── mcp_tools.py        # MCP (Model Context Protocol) integration
-│       ├── run_python_code.py  # Configurable Python code execution
-│       ├── save_report.py      # Report saving functionality
-│       ├── search_knowledge.py # Knowledge base search
-│       └── timeseries_forecast.py # Time series forecasting tool
-├── sample_api/                 # API implementations
-│   └── async_api.py            # Asynchronous FastAPI example
-├── sample_ui/                  # Web interface implementations
-│   ├── async_graph_manager.py  # Async LangGraph lifecycle and graph cache
-│   ├── history_loader.py       # Chat history loading and normalization
-│   ├── memory_ui.py            # Memory-enhanced UI interface
-│   ├── plotly_utils.py         # Plotly utilities and helpers
-│   ├── simple_ui.py            # Simple non-streaming Gradio UI
-│   ├── streaming_ui.py         # Streaming Gradio UI with real-time updates
-│   ├── streamlit_ui.py         # Streaming Streamlit UI with enhanced features
-│   └── style.py                # UI styling and CSS
-├── example/                    # Example configurations and data
-│   ├── bi.yaml                 # BI configuration example
-│   ├── config.yaml             # Application config example
-│   ├── table_info.yaml         # Table information
-│   ├── table_columns.csv       # Table column registry
-│   ├── common_columns.csv      # Common column definitions
-│   ├── sql_example.yaml        # SQL examples for retrieval
-│   ├── table_selection_example.csv # Table selection examples
-│   └── tracking_orders.sqlite  # Sample SQLite database
-├── timeseries_forecasting/     # Time series forecasting service
-│   ├── README.md               # Forecasting service documentation
-│   └── ...                     # Forecasting service implementation
-├── tests/                      # Test suite
-│   ├── __init__.py             # Package initialization
-│   ├── conftest.py             # Test configuration
-│   ├── analysis/               # Data analysis tests
-│   ├── context_management/     # Context management tests
-│   ├── eval/                   # Evaluation workflow tests
-│   ├── observability/          # Observability tests
-│   ├── test_*.py               # Test modules for various components
-│   └── README.md               # Testing documentation
-├── docs/                       # Documentation
-│   ├── source/                 # Sphinx documentation source
-│   ├── build/                  # Built documentation
-│   ├── Makefile                # Documentation build scripts
-│   └── make.bat                # Windows build script
-└── .github/                    # GitHub workflows and templates
-    └── workflows/              # CI/CD workflows
+```powershell
+$env:UV_CACHE_DIR = Join-Path (Get-Location) '.uv-cache'
+uv sync --python 3.11 --no-dev --extra enterprise --extra test --no-editable --locked
+.venv\Scripts\python -X utf8 -m enterprise.setup
+Push-Location frontend
+npm.cmd ci
+npm.cmd run build
+Pop-Location
+.\start-enterprise.ps1
 ```
 
-## Advanced Features
+浏览器访问 http://127.0.0.1:8093 ，接口文档位于 `/docs`。
+`--no-editable` 用于规避 Python 3.11 在 Windows 中文路径读取 editable `.pth` 文件时的编码问题。
+业务源码仍从项目根目录导入，修改后重启服务即可。
 
-### Visualization configuration
-You can choose rule-based or llm-based visualization or disable visualization.
-```yaml
-# Options: "rule" (rule-based), "llm" (LLM-based), or null (skip visualization)
-visualization_mode: llm
+启动脚本会启动本项目的 PostgreSQL 服务。首次启动初始化四张业务表、一张去重分析视图、
+2,400 个订单及分次退款/拒绝退款数据，并创建 `analyst_reader` 只读角色。
+所有数据均为合成数据；日期相对首次初始化当天生成，数据卷持久化后不会自动刷新。
+数据库端口仅绑定 `127.0.0.1:55432`，Web 仅绑定本机。
+停止数据库使用 `docker compose -f compose.enterprise.yaml stop`，该命令保留数据卷。
+
+## 模型配置
+
+`enterprise.setup` 只在 `.env` 不存在时生成随机的本地数据库密码，不覆盖已有配置。
+在 `.env` 填写以下字段，保留其余数据库配置，然后重启 Web 服务：
+
+```dotenv
+LLM_API_KEY=你的密钥
+LLM_BASE_URL=https://你的OpenAI兼容服务/v1
+LLM_MODEL=服务支持的模型名称
+SQL_TIMEOUT_MS=5000
+SQL_MAX_ROWS=500
 ```
 
-### Prompt Engineering
-#### Basic Knowledge & Glossary
+本项目已用 DeepSeek V4.1 Flash 完成联调，官方接口配置如下（API Key 仍填写到上面的 `LLM_API_KEY`）：
 
-You can define basic knowledge and glossary in `example/bi.yaml`, for example:
-
-```yaml
-basic_knowledge_glossary: |
-  # Basic Knowledge Introduction
-    The basic knowledge about your company and its business, including key concepts, metrics, and processes.
-  # Glossary
-    Common terms and their definitions used in your business context.
+```dotenv
+LLM_BASE_URL=https://api.deepseek.com
+LLM_MODEL=deepseek-flash
 ```
 
-#### Data Warehouse Introduction
+模型 ID 使用 `deepseek-flash`，不是 `deepseek-flash4.1`；第三方平台请使用其公布的地址和模型 ID。
 
-You can provide a brief introduction of your data warehouse in `example/bi.yaml`, for example:
+模型需要支持 Chat Completions 和工具调用。密钥不发到前端，也不提交到 Git。
+服务请求超时为45秒，模型客户端最多重试一次；LangGraph SQL 最多修正两次。
+业务口径和相关数据结构会发送给配置的模型服务。请先使用本项目合成数据联调。
 
-```yaml
-data_warehouse_introduction: |
-  # Data Warehouse Introduction
-    This data warehouse is built on Presto and contains various tables related to XXXXX.
-    The main fact tables include XXXX metrics, while dimension tables include XXXXX.
-    The data is updated hourly and is used for reporting and analysis purposes.
+未配置模型时：
+
+- **AI 自由问数**返回明确的“模型未配置”错误，不伪造答案。
+- **固定案例**使用预先审核的 SQL 实际查询 PostgreSQL，可验证图表、数据口径及导出，不调用模型，也不宣称是自然语言理解结果。
+
+## 业务口径与演示
+
+首个案例：最近三个完整自然月各部门订单退款率、异常部门与月度趋势。
+
+- 订单退款率 = 成功退款的去重订单数 / 已支付订单数 × 100%。
+- 按订单日期归属期间，排除当前未结束月份与取消订单。
+- 仅计入 `completed` 退款，分次退款先按订单聚合，防止 JOIN 扩大分母。
+- 金额退款率与订单退款率是不同指标，不能混用。
+- 部门至少30个支付订单，订单退款率超过20%且超过本次部门中位数2倍，标记为待核查。
+- 截断结果会明确提示，且关闭总体异常判断；异常标记不是因果分析结论。
+
+另外两个案例展示销售额趋势、退款原因的金额分布。
+每次分析均可以查看 SQL、结果明细、口径与报告。任务独立保存，不会把前一个任务的结果误当成新问题答案。
+模型主动请求澄清时可补充信息，并从检查点恢复。跨独立任务的自由多轮对话尚未作为产品能力提供。
+
+## 验证
+
+```powershell
+New-Item -ItemType Directory -Force .runtime\tmp | Out-Null
+$env:TMP = Join-Path (Get-Location) '.runtime\tmp'
+$env:TEMP = $env:TMP
+.venv\Scripts\python -X utf8 -m pytest tests/enterprise tests/test_text2sql_generate_sql.py tests/test_text2sql_errors.py tests/test_config_loader.py -o addopts='' -q
+.venv\Scripts\python -X utf8 -m enterprise.verify_workflow
+Push-Location frontend
+npx.cmd playwright test --reporter=line
+Pop-Location
 ```
 
-#### Table Selection Rules
+浏览器测试默认使用已安装的 Microsoft Edge，要求本地 Web 服务位于8093端口。
+`verify_workflow` 只替换 LLM 响应，实际运行上游检索、LangGraph、校验器与 PostgreSQL；
+覆盖 SQL 纠错、重试上限、安全拒绝、澄清中断与恢复。它不验证真实模型的生成质量。
 
-You can configure table selection rules in `example/bi.yaml`, for example:
+模型配置完成后，运行：
 
-```yaml
-table_selection_extra_rule: |
-  - All tables with is_valid can support both valid and invalid traffics
+```powershell
+.venv\Scripts\python -X utf8 -m enterprise.verify_live
 ```
 
-#### Custom SQL Rules
+此命令调用真实模型处理三个业务问题，并将结果与审核过的 SQL 结果比较，可能产生模型费用。
+结果写入 `.runtime/live-verification.json`，不以固定 SQL 替代模型输出。
 
-You can define your additional SQL Generation rules for tables in `example/table_info.yaml`, for example:
+如需从浏览器验证真实模型，可在 `frontend` 目录执行以下命令。该测试也会调用模型，默认浏览器回归不会执行它：
 
-```yaml
-sql_rule: |
-  ### SQL Rules
-  - All event_date in the table are stored in **UTC**. If the user specifies a timezone (e.g., CET, PST), convert between timezones accordingly.
-
+```powershell
+$env:LIVE_MODEL_TEST = '1'
+npx.cmd playwright test --reporter=line
+Remove-Item Env:LIVE_MODEL_TEST
 ```
 
+## 当前验证状态与边界
 
-### Catalog Management
+截至2026-10-29：
 
-#### Introduction
+- 155项应用与核心工作流回归测试通过，包含输出通配符绕过字段白名单与业务提示词加载的回归测试。
+- LangGraph + PostgreSQL 集成流程验证通过（模型响应为受控测试数据）。
+- 3项浏览器端测试通过，覆盖图表、明细、报告下载、移动布局和未配置模型提示。
+- 配置模型后的浏览器验收：3 passed、1 skipped，包含真实 AI 提问、阶段进度、退款率和异常图表、报告下载；未配置模型提示测试按条件跳过（配置前已验证）。演示截图见本文开头。
+- DeepSeek `deepseek-flash` 的三个真实模型案例全部通过：退款率趋势12行、销售趋势12行、退款原因3行；逐列、逐行与审核 SQL 结果比较一致。这是三个固定案例的验证，不代表任意问题的准确率。
 
-High-quality catalog data is essential for accurate Text2SQL generation and data analysis. OpenChatBI automatically 
-discovers and indexes data warehouse table structures while providing flexible management for business metadata, column 
-descriptions, and query optimization rules.
+本版本面向本机个人演示，尚未提供多租户、企业登录、行级授权或生产部署。
+业务允许访问范围是服务配置中的表字段策略，不是按登录用户动态授权。
+统计分析以返回数据为依据，但 SQL 是否正确表达业务意图仍需通过业务验收与模型评测验证。
 
-#### Catalog Structure
+主要应用目录：`enterprise/`、`frontend/`、`tests/enterprise/`。
+截图、测试日志、查询历史和检查点位于 `.runtime/`，已加入忽略规则。
 
-The catalog system organizes metadata in a hierarchical structure:
+## 目录结构
 
-**Database Level**
-- Top-level container for all tables and schemas
-
-**Table Level**
-- `description`: Business functionality and purpose of the table
-- `selection_rule`: Guidelines for when and how to use this table in queries
-- `sql_rule`: Specific SQL generation rules and constraints for this table
-
-**Column Level**
-- **Required Fields**: Essential metadata for each column to enable effective Text2SQL generation
-  - `column_name`: Technical database column name
-  - `display_name`: Human-readable name for business users
-  - `alias`: Alternative names or abbreviations
-  - `type`: Data type (string, integer, date, etc.)
-  - `category`: Business category, dimension or metric
-  - `tag`: Additional labels for filtering and organization
-  - `description`: Detailed explanation of column purpose and usage
-- **Two Types** of Columns
-  - **Common Columns**: Columns with standardized business meanings shared across tables
-  - **Table-Specific Columns**: Columns with context-dependent meanings that vary between tables
-- **Derived Metrics**: Virtual metrics calculated from existing columns using SQL formulas
-  - Computed dynamically during query execution rather than stored as physical columns
-  - Examples: CTR (clicks/impressions), conversion rates, profit margins
-  - Enable complex business calculations without pre-computing values
-  
-#### Loading Catalog from Database
-
-OpenChatBI can automatically discover and load table structures from your data warehouse:
-
-1. **Automatic Discovery**: Connects to your configured data warehouse and scans table schemas
-2. **Metadata Extraction**: Extracts column names, data types, and basic structural information
-3. **Incremental Updates**: Supports updating catalog data as your database schema evolves
-
-Configure automatic catalog loading in your `config.yaml`:
-
-```yaml
-catalog_store:
-  store_type: file_system
-  data_path: ./catalog_data
-data_warehouse_config:
-  include_tables:
-    - your_table_pattern
-  # Leave empty to include all accessible tables
+```text
+enterprise/                 API、业务语义、分析报告、任务存储及验证脚本
+  db/                       PostgreSQL 建表、合成数据与只读账号初始化
+  catalog/                  业务目录、字段定义及 SQL 示例
+frontend/                   ECharts 界面与浏览器测试
+openchatbi/                  核心 Agent、检索与 LangGraph 工作流
+  text2sql/sql_guard.py      SQL AST 校验
+  text2sql/readonly.py       只读执行与查询限制
+tests/enterprise/           应用、安全与数据库测试
+compose.enterprise.yaml     本地 PostgreSQL 服务
+start-enterprise.ps1        Windows 启动入口
 ```
 
-#### File System Catalog Store
+## 配置与敏感信息
 
-The file system catalog store organizes metadata across multiple files for maintainability and version control:
+本仓库不提供 API Key。运行 `python -m enterprise.setup` 后，在本地 `.env` 中填写自己的模型配置。
+`.env`、运行日志、查询历史、检查点、虚拟环境和依赖缓存不提交到仓库。
+请勿将密钥写入前端、代码、截图或 Issue；公开问题反馈请先脱敏。
 
-**Core Table Information**
-- `table_info.yaml`: Comprehensive table metadata organized hierarchically (database → table → information)
-  - `type`: Table classification (e.g., "fact" for Fact Tables, "dimension" for Dimension Tables)
-  - `description`: Business functionality and purpose
-  - `selection_rule`: Usage guidelines in markdown list format (each line starts with `-`)
-  - `sql_rule`: SQL generation rules in markdown header format (each rule starts with `####`)
-  - `derived_metric`: Virtual metrics with calculation formulas, organized by groups:
-    ```md
-    #### Derived Ratio Metrics
-    Click-through Rate (alias CTR): SUM(clicks) / SUM(impression)
-    Conversion Rate (alias CVR): SUM(conversions) / SUM(clicks)
-    ```
+## 许可证与致谢
 
-**Column Management**
-- `table_columns.csv`: Basic column registry with schema `db_name,table_name,column_name`
-- `table_spec_columns.csv`: Table-specific column metadata with full schema:
-  `db_name,table_name,column_name,display_name,alias,type,category,tag,description`
-- `common_columns.csv`: Shared column definitions across tables with schema:
-  `column_name,display_name,alias,type,category,tag,description`
-
-**Query Examples and Training Data**
-- `table_selection_example.csv`: Table selection training examples with schema `question,selected_tables`
-- `sql_example.yaml`: Query examples organized by database and table structure:
-  ```yaml
-  your_database:
-    ad_performance: |
-      Q: Show me CTR trends for the past 7 days
-      A: SELECT date, SUM(clicks)/SUM(impressions) AS ctr
-         FROM ad_performance
-         WHERE date >= CURRENT_DATE - INTERVAL 7 DAY
-         GROUP BY date
-         ORDER BY date;
-  ```
-
-### Time Series Forecasting Service Setup
-
-OpenChatBI can integrate with a time series forecasting service for advanced predictive analytics. Follow these steps to set up the service:
-
-#### 1. Build and Run the Forecasting Service
-
-See detailed instructions in [timeseries_forecasting/README.md](timeseries_forecasting/README.md)
-
-Quick start:
-```bash
-cd timeseries_forecasting
-./build_and_run.sh
-```
-
-#### 2. Configure Service URL
-
-In your `config.yaml`:
-```yaml
-# Time Series Forecasting Service Configuration
-timeseries_forecasting_service_url: "http://localhost:8765"
-# Optional: override the model's minimum input length. Leave unset to fetch it automatically
-# from the service /health (which reads it from the model config, e.g. Timer's input_token_len).
-# timeseries_forecasting_min_input_length: 96
-```
-
-**Important**: Adjust the URL based on your deployment scenario:
-- **Local development** (OpenChatBI on host, Forecasting service in Docker): `http://localhost:8765`
-- **Remote service**: `http://your-service-host:8765`
-
-
-#### 3. Verify Service Health
-
-Test the service is accessible:
-```bash
-curl http://localhost:8765/health
-```
-
-Expected response:
-```json
-{
-  "status": "healthy",
-  "model_initialized": true,
-  "min_input_length": 96,
-  "uptime_seconds": 123.45
-}
-``` 
-
-### Python Code Execution Configuration
-
-OpenChatBI supports multiple execution environments for running Python code with different security and performance characteristics:
-
-```yaml
-# Python Code Execution Configuration
-python_executor: local  # Options: "local", "restricted_local", "docker"
-```
-
-#### Executor Types
-
-- **`local`** (Default)
-  - **Performance**: Fastest execution
-  - **Security**: Least secure (code runs in current Python process)
-  - **Capabilities**: Full Python capabilities and library access
-  - **Use Case**: Development environments, trusted code execution
-
-- **`restricted_local`**
-  - **Performance**: Moderate execution speed
-  - **Security**: Moderate security with RestrictedPython sandboxing
-  - **Capabilities**: Limited Python features (no imports, file access, etc.)
-  - **Use Case**: Semi-trusted environments with controlled execution
-
-- **`docker`**
-  - **Performance**: Slower due to container overhead
-  - **Security**: Highest security with complete process isolation
-  - **Capabilities**: Full Python capabilities within isolated container
-  - **Use Case**: Production environments, untrusted code execution
-  - **Requirements**: Docker must be installed and running
-
-#### Docker Executor Setup
-
-For production deployments or when running untrusted code, the Docker executor provides complete isolation:
-
-1. **Install Docker**: Download and install Docker Desktop or Docker Engine
-2. **Configure executor**: Set `python_executor: docker` in your config
-3. **Automatic setup**: OpenChatBI will automatically build the required Docker image
-4. **Fallback behavior**: If Docker is unavailable, automatically falls back to local executor
-
-**Docker Executor Features**:
-- Pre-installed data science libraries (pandas, numpy, matplotlib, seaborn)
-- Network isolation for security
-- Automatic container cleanup
-- Resource isolation from host system
-
-## Development & Testing
-
-### Code Quality Tools
-
-The project uses modern Python tooling for code quality:
-
-```bash
-# Format code
-uv run black .
-
-# Lint code  
-uv run ruff check .
-
-# Type checking
-uv run mypy openchatbi/
-
-# Security scanning
-uv run bandit -r openchatbi/
-```
-
-### Testing
-
-Run the test suite:
-
-```bash
-# Run all tests
-uv run pytest
-
-# Run with coverage
-uv run pytest --cov=openchatbi --cov-report=html
-
-# Run specific test files
-uv run pytest test/test_generate_sql.py
-uv run pytest test/test_agent_graph.py
-```
-
-#### RunLedger Replay Evals
-
-RunLedger provides deterministic replay coverage for the agent/tool protocol
-using recorded JSONL cassettes. It does not require live LLM or warehouse access
-in replay mode.
-
-```bash
-uv run --extra eval runledger run evals/runledger --mode replay --baseline baselines/runledger-openchatbi.json
-```
-
-The `eval` extra pins RunLedger to `0.2.4`. Run artifacts are written under `runledger_out/`.
-To verify that skipping schema discovery is caught even when the final JSON is valid, run:
-
-```bash
-uv run --extra eval python -m evals.runledger.check_regression
-```
-
-The checker runs the real graph with the normal trajectory and a temporary trajectory that skips `search_schema`. It succeeds only when the normal case passes and the skipped-tool case fails the `must_call` assertion. See [the replay guide](evals/runledger/README.md) for the scope and evidence files.
-
-### Pre-commit Hooks
-
-Install pre-commit hooks for automatic code quality checks:
-
-```bash
-uv run pre-commit install
-```
-
-## Contribution Guidelines
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/fooBar`)
-3. Commit your changes (`git commit -am 'Add some fooBar'`)
-4. Push to the branch (`git push origin feature/fooBar`)
-5. Create a new Pull Request
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details
-
-## Contact & Support
-
-- **Author**: Yu Zhong ([zhongyu8@gmail.com](mailto:zhongyu8@gmail.com))
-- **Repository**: [github.com/zhongyu09/openchatbi](https://github.com/zhongyu09/openchatbi)
-- **Issues**: [Report bugs and feature requests](https://github.com/zhongyu09/openchatbi/issues)
+本项目基于 [OpenChatBI](https://github.com/zhongyu09/openchatbi) 构建，遵循 [MIT 许可证](LICENSE)，保留原作者版权声明。来源版本及说明见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。

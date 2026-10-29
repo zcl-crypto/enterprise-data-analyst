@@ -1,0 +1,2 @@
+# PostgreSQL initialization scripts run in a Linux container, even on Windows.
+*.sh text eol=lf

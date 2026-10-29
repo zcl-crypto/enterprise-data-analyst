@@ -1,0 +1,9 @@
+{
+  "name": "enterprise-data-analyst-ui",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {"dev": "vite --host 127.0.0.1", "build": "vite build", "preview": "vite preview --host 127.0.0.1"},
+  "dependencies": {"echarts": "^6.0.0"},
+  "devDependencies": {"vite": "^7.1.0", "@playwright/test": "^1.55.0"}
+}

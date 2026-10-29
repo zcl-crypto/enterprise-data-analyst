@@ -9,6 +9,7 @@ permissions:
 
 jobs:
   test:
+    if: github.repository == 'zhongyu09/openchatbi'
     runs-on: ubuntu-latest
     strategy:
       matrix:

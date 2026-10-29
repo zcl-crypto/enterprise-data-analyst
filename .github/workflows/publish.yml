@@ -7,6 +7,7 @@ on:
 
 jobs:
   test:
+    if: github.repository == 'zhongyu09/openchatbi'
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -43,6 +44,7 @@ jobs:
         name: codecov-umbrella
 
   build:
+    if: github.repository == 'zhongyu09/openchatbi'
     needs: test
     runs-on: ubuntu-latest
 
@@ -75,7 +77,7 @@ jobs:
   publish:
     needs: build
     runs-on: ubuntu-latest
-    if: github.event_name == 'release'
+    if: github.repository == 'zhongyu09/openchatbi' && (github.event_name == 'release')
     environment:
       name: pypi
       url: https://pypi.org/p/openchatbi
@@ -100,7 +102,7 @@ jobs:
   publish-test:
     needs: build
     runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch'  # Only publish to TestPyPI when manually triggered
+    if: github.repository == 'zhongyu09/openchatbi' && (github.event_name == 'workflow_dispatch')
     environment:
       name: testpypi
       url: https://test.pypi.org/p/openchatbi

@@ -6,6 +6,7 @@ on:
 
 jobs:
   runledger:
+    if: github.repository == 'zhongyu09/openchatbi'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -32,7 +33,7 @@ jobs:
   judge:
     # Non-gating LLM-as-Judge run (manual only). Never blocks PR merges:
     # only runs on explicit dispatch, and uploads a report artifact.
-    if: github.event_name == 'workflow_dispatch'
+    if: github.repository == 'zhongyu09/openchatbi' && (github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
     continue-on-error: true
     steps:

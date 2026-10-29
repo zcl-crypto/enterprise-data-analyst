@@ -1,0 +1,4 @@
+question,selected_tables
+分析最近三个完整自然月各部门的订单退款率，标记异常部门并展示趋势,"[""sales.order_metrics""]"
+最近三个完整自然月各部门销售额趋势,"[""sales.order_metrics""]"
+最近三个完整自然月的订单，其成功退款金额按原因如何分布,"[""sales.refunds"", ""sales.orders""]"

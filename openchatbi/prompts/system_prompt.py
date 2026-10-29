@@ -142,6 +142,14 @@ def get_text2sql_dialect_prompt_template(dialect: str) -> str:
 
     dialect_rules = get_dialect_rules()
     prompt = prompt.replace("[dialect]", dialect).replace("[sql_dialect_rules]", dialect_rules.get(dialect, ""))
+    # Business-specific output contracts must also apply to SQL correction.
+    # Read at invocation time so optional configuration is not frozen in cache.
+    try:
+        extra_rule = config.get().bi_config.get("text2sql_extra_rule", "")
+    except ValueError:
+        extra_rule = ""
+    if isinstance(extra_rule, str) and extra_rule.strip():
+        prompt += "\n\n# Application SQL rules (override conflicting general alias rules)\n" + extra_rule
     return prompt
 
 

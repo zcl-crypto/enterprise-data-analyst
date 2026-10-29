@@ -1,4 +1,5 @@
 import datetime
+from decimal import Decimal
 import re
 import time as _time
 from collections.abc import Callable
@@ -440,6 +441,26 @@ def create_sql_nodes(
             Tuple[dict, str]: A tuple containing (schema_info, CSV string).
         """
         limit_enabled, result_limit = _get_sql_result_limit_config()
+        try:
+            ast_guard = getattr(config.get(), 'enable_ast_sql_guard', False) is True
+        except ValueError:
+            ast_guard = False
+        if ast_guard:
+            from openchatbi.text2sql.readonly import execute_readonly
+
+            cfg = config.get()
+            columns, rows, truncated = execute_readonly(
+                catalog.get_sql_engine(), sql, cfg.sql_access_schema,
+                max_rows=result_limit, timeout_ms=cfg.sql_timeout_ms,
+            )
+            df = pd.DataFrame(rows, columns=columns)
+            # PostgreSQL NUMERIC values arrive as Decimal; pandas needs numeric dtype for charts.
+            for column in df.columns:
+                if not df.empty and isinstance(df[column].iloc[0], Decimal):
+                    df[column] = df[column].astype(float)
+            schema_info = _analyze_dataframe_schema(df)
+            schema_info.update(result_limit=result_limit, truncated=truncated)
+            return schema_info, df.to_csv(index=False)
         is_safe, reason = _validate_sql_safety(sql, dialect)
         if not is_safe:
             raise SQLSecurityError(reason)

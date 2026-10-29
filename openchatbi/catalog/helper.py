@@ -28,7 +28,9 @@ def create_sqlalchemy_engine_instance(data_warehouse_config: dict[str, Any]) -> 
     """
     database_uri: str = data_warehouse_config.get("uri") or ""
 
-    engine_args: dict[str, Any] = {"echo": True}
+    engine_args: dict[str, Any] = {"echo": data_warehouse_config.get("echo", True)}
+    if data_warehouse_config.get("connect_args"):
+        engine_args["connect_args"] = dict(data_warehouse_config["connect_args"])
 
     # Handle Presto authentication
     if "presto" in database_uri and "token_service" in data_warehouse_config:

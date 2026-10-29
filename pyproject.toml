@@ -87,6 +87,13 @@ Documentation = "https://github.com/zhongyu09/openchatbi/tree/main"
 "Bug Tracker" = "https://github.com/zhongyu09/openchatbi/issues"
 
 [project.optional-dependencies]
+enterprise = [
+    "fastapi>=0.115,<1.0",
+    "uvicorn>=0.34,<1.0",
+    "sqlglot>=28.6,<31",
+    "psycopg[binary]>=3.2,<4",
+    "python-dotenv>=1.0,<2",
+]
 mysql = [
     "pymysql>=1.1.0,<2.0.0",
 ]

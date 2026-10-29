@@ -1,0 +1,96 @@
+sales:
+  customers:
+    description: 客户维度，包含合成客户名称与个人/企业客户分群。
+    selection_rule: 客户维度，包含合成客户名称与个人/企业客户分群。
+    sql_rule: '成功退款的去重订单数 / 已支付订单数 × 100%，按订单下单日期归属期间，排除取消订单。
+
+      成功退款金额 / 已支付金额 × 100%，与订单退款率不同；分次退款金额求和。
+
+      默认最近三个完整自然月，起点包含、终点不包含；不包含当前未结束月份。
+
+      仅 refund_status=completed 计入退款，rejected 不计入。
+
+      orders.customer_id → customers.customer_id；orders.department_id → departments.department_id；refunds.order_id
+      → orders.order_id。
+
+      优先使用 sales.order_metrics 视图。该视图先按订单汇总退款，再关联订单与部门，每订单一行。
+
+      部门至少30个已支付订单，订单退款率超过20%且超过本次部门中位数的2倍，标记为待核查；不是因果结论。
+
+      本库全部为合成演示数据，退款原因仅为模拟标签。时间基准为数据库 CURRENT_DATE。'
+  departments:
+    description: 部门事业部维度，每部门一行；部门销售退款率分布关联 orders。
+    selection_rule: 部门事业部维度，每部门一行；部门销售退款率分布关联 orders。
+    sql_rule: '成功退款的去重订单数 / 已支付订单数 × 100%，按订单下单日期归属期间，排除取消订单。
+
+      成功退款金额 / 已支付金额 × 100%，与订单退款率不同；分次退款金额求和。
+
+      默认最近三个完整自然月，起点包含、终点不包含；不包含当前未结束月份。
+
+      仅 refund_status=completed 计入退款，rejected 不计入。
+
+      orders.customer_id → customers.customer_id；orders.department_id → departments.department_id；refunds.order_id
+      → orders.order_id。
+
+      优先使用 sales.order_metrics 视图。该视图先按订单汇总退款，再关联订单与部门，每订单一行。
+
+      部门至少30个已支付订单，订单退款率超过20%且超过本次部门中位数的2倍，标记为待核查；不是因果结论。
+
+      本库全部为合成演示数据，退款原因仅为模拟标签。时间基准为数据库 CURRENT_DATE。'
+  order_metrics:
+    description: 订单经营分析视图，每订单一行，包含部门、金额与去重退款标记。优先用于销售、订单退款率、趋势与部门对比。
+    selection_rule: 订单经营分析视图，每订单一行，包含部门、金额与去重退款标记。优先用于销售、订单退款率、趋势与部门对比。
+    sql_rule: '成功退款的去重订单数 / 已支付订单数 × 100%，按订单下单日期归属期间，排除取消订单。
+
+      成功退款金额 / 已支付金额 × 100%，与订单退款率不同；分次退款金额求和。
+
+      默认最近三个完整自然月，起点包含、终点不包含；不包含当前未结束月份。
+
+      仅 refund_status=completed 计入退款，rejected 不计入。
+
+      orders.customer_id → customers.customer_id；orders.department_id → departments.department_id；refunds.order_id
+      → orders.order_id。
+
+      优先使用 sales.order_metrics 视图。该视图先按订单汇总退款，再关联订单与部门，每订单一行。
+
+      部门至少30个已支付订单，订单退款率超过20%且超过本次部门中位数的2倍，标记为待核查；不是因果结论。
+
+      本库全部为合成演示数据，退款原因仅为模拟标签。时间基准为数据库 CURRENT_DATE。'
+  orders:
+    description: 订单事实表，每订单一行，paid为已支付，cancelled为取消；按ordered_at筛选时间。
+    selection_rule: 订单事实表，每订单一行，paid为已支付，cancelled为取消；按ordered_at筛选时间。
+    sql_rule: '成功退款的去重订单数 / 已支付订单数 × 100%，按订单下单日期归属期间，排除取消订单。
+
+      成功退款金额 / 已支付金额 × 100%，与订单退款率不同；分次退款金额求和。
+
+      默认最近三个完整自然月，起点包含、终点不包含；不包含当前未结束月份。
+
+      仅 refund_status=completed 计入退款，rejected 不计入。
+
+      orders.customer_id → customers.customer_id；orders.department_id → departments.department_id；refunds.order_id
+      → orders.order_id。
+
+      优先使用 sales.order_metrics 视图。该视图先按订单汇总退款，再关联订单与部门，每订单一行。
+
+      部门至少30个已支付订单，订单退款率超过20%且超过本次部门中位数的2倍，标记为待核查；不是因果结论。
+
+      本库全部为合成演示数据，退款原因仅为模拟标签。时间基准为数据库 CURRENT_DATE。'
+  refunds:
+    description: 退款流水，每订单可能有多次退款；仅completed计入，关联订单前应先汇总。
+    selection_rule: 退款流水，每订单可能有多次退款；仅completed计入，关联订单前应先汇总。
+    sql_rule: '成功退款的去重订单数 / 已支付订单数 × 100%，按订单下单日期归属期间，排除取消订单。
+
+      成功退款金额 / 已支付金额 × 100%，与订单退款率不同；分次退款金额求和。
+
+      默认最近三个完整自然月，起点包含、终点不包含；不包含当前未结束月份。
+
+      仅 refund_status=completed 计入退款，rejected 不计入。
+
+      orders.customer_id → customers.customer_id；orders.department_id → departments.department_id；refunds.order_id
+      → orders.order_id。
+
+      优先使用 sales.order_metrics 视图。该视图先按订单汇总退款，再关联订单与部门，每订单一行。
+
+      部门至少30个已支付订单，订单退款率超过20%且超过本次部门中位数的2倍，标记为待核查；不是因果结论。
+
+      本库全部为合成演示数据，退款原因仅为模拟标签。时间基准为数据库 CURRENT_DATE。'
